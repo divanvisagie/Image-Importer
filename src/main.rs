@@ -1,5 +1,6 @@
 use eframe::{epi, egui};
 
+mod camera_driver;
 
 struct AppState {
     content: String
