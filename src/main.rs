@@ -1,16 +1,16 @@
-use eframe::{epi, egui};
+use eframe::{egui, epi};
+
+use crate::camera_driver::list_devices;
 
 mod camera_driver;
 
 struct AppState {
-    content: String
+    content: String,
 }
 
 impl epi::App for AppState {
-    fn update(&mut self, ctx: &eframe::egui::CtxRef, frame: &epi::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label(self.content.as_str())
-        });
+    fn update(&mut self, ctx: &eframe::egui::CtxRef, _frame: &epi::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| ui.label(self.content.as_str()));
     }
 
     fn name(&self) -> &str {
@@ -21,9 +21,10 @@ impl epi::App for AppState {
 fn main() {
     tracing_subscriber::fmt::init();
     tracing::info!("App booting...");
+    list_devices();
 
     let app_state = AppState {
-        content: "Some init content".to_string()
+        content: "Some init content".to_string(),
     };
     let mut window_options = eframe::NativeOptions::default();
     window_options.initial_window_size = Some(egui::Vec2::new(800., 600.));
