@@ -1,6 +1,50 @@
-use rusb::{Device, GlobalContext};
-use std::collections::HashMap;
+use rusb::{Device, DeviceDescriptor, GlobalContext, UsbContext};
+use std::fmt;
+use std::{collections::HashMap, hash::Hash};
 use usb_ids::Vendors;
+
+pub struct FriendlyDevice {
+    descriptor: DeviceDescriptor,
+    pub vendor_name: Option<String>,
+    pub device_name: Option<String>,
+}
+
+impl fmt::Debug for FriendlyDevice {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Vendor: {:?}:{:?} \nDevice: {:?}:{:?}\n------------------------",
+            self.descriptor.vendor_id(),
+            self.vendor_name,
+            self.descriptor.product_id(),
+            self.device_name
+        )
+    }
+}
+
+impl FriendlyDevice {
+    pub fn new(descriptor: DeviceDescriptor) -> FriendlyDevice {
+        let mut vendorname = None;
+        let mut devicename = None;
+        for vendor in Vendors::iter() {
+            if descriptor.vendor_id() == vendor.id() {
+                vendorname = Some(vendor.name().to_string());
+                for device in vendor.devices() {
+                    if device.id() == descriptor.product_id() {
+                        devicename = Some(device.name().to_string());
+                        break;
+                    }
+                }
+            }
+        }
+
+        FriendlyDevice {
+            descriptor,
+            vendor_name: vendorname,
+            device_name: devicename,
+        }
+    }
+}
 
 pub fn get_vendor_map() -> HashMap<u16, &'static str> {
     let mut vendors: HashMap<u16, &str> = HashMap::new();
@@ -39,14 +83,34 @@ pub fn print_device(device: Device<GlobalContext>) {
 
     let vendor_name = get_vendor_for_id(vendor_id);
 
-    println!("Bus {bus:03} Device {addr:03} ID {vendor_name}:{product_id:04x}");
+    println!("Bus {bus:03} Device {addr:03} ID {vendor_name} - {product_id:04x}");
+}
+
+pub fn get_friendly_devices() -> Vec<FriendlyDevice> {
+    let device_list = if let Ok(dl) = rusb::devices() {
+        dl.iter().collect()
+    } else {
+        Vec::new()
+    };
+
+    let devices = device_list
+        .iter()
+        .map(|d| FriendlyDevice::new(d.device_descriptor().unwrap()));
+
+    devices.collect()
 }
 
 pub fn list_devices() -> bool {
-    for device in rusb::devices().unwrap().iter() {
-        print_device(device)
-    }
+    // let devices = rusb::devices().unwrap().iter();
 
+    // let devices = devices.map(|d| {
+    //     tracing::info!("Just for fun");
+    //     FriendlyDevice::new(d.device_descriptor().unwrap())
+    // });
+
+    let devices = get_friendly_devices();
+
+    println!("{:#?}", devices);
     true
 }
 
